@@ -81,26 +81,7 @@ const AuthProvider = ({ children }) => {
   const [patients, setPatients] = useState([]);
 
   useEffect(() => {
-    // Temporary: Create a demo user for testing
-    const demoUser = {
-      id: 'demo-user-123',
-      email: 'demo@hopehub.com',
-      name: 'Demo User',
-      picture: null,
-      role: 'patient',
-      personal_mantra: '',
-      fighting_for: '',
-      diagnosis_date: '',
-      favorite_color: '#ec4899',
-      theme_preference: 'soft',
-      treatment_milestones: []
-    };
-    
-    setUser(demoUser);
-    setLoading(false);
-    
-    // TODO: Uncomment this when OAuth is working
-    // checkAuthStatus();
+    checkAuthStatus();
   }, []);
 
   const checkAuthStatus = async () => {
@@ -113,6 +94,7 @@ const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.log('Not authenticated');
+      setUser(null);
     } finally {
       setLoading(false);
     }
