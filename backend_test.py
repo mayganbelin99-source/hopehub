@@ -11,6 +11,67 @@ class HopeHubAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.user_id = "test-user-123"
+        self.session_token = None
+        self.session = requests.Session()
+        
+    def setup_test_user(self):
+        """Setup a test user session for authentication"""
+        try:
+            # Create a test user session directly in the database
+            import pymongo
+            from datetime import datetime, timezone, timedelta
+            import uuid
+            
+            # Connect to MongoDB
+            client = pymongo.MongoClient("mongodb://localhost:27017")
+            db = client["hopehub_database"]
+            
+            # Create test user
+            test_user = {
+                "id": self.user_id,
+                "email": "test@hopehub.com",
+                "name": "Test User",
+                "picture": None,
+                "role": "patient",
+                "personal_mantra": None,
+                "fighting_for": None,
+                "diagnosis_date": None,
+                "favorite_color": "#ec4899",
+                "theme_preference": "soft",
+                "treatment_milestones": [],
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc)
+            }
+            
+            # Insert or update user
+            db.users.replace_one({"id": self.user_id}, test_user, upsert=True)
+            
+            # Create session token
+            self.session_token = f"test-session-{uuid.uuid4()}"
+            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+            
+            session_data = {
+                "id": str(uuid.uuid4()),
+                "user_id": self.user_id,
+                "session_token": self.session_token,
+                "expires_at": expires_at,
+                "created_at": datetime.now(timezone.utc)
+            }
+            
+            # Remove existing sessions and create new one
+            db.sessions.delete_many({"user_id": self.user_id})
+            db.sessions.insert_one(session_data)
+            
+            # Set session cookie
+            self.session.cookies.set("session_token", self.session_token)
+            
+            client.close()
+            print("✅ Test user session created successfully")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to setup test user: {str(e)}")
+            return False
 
     def run_test(self, name, method, endpoint, expected_status, data=None, files=None):
         """Run a single API test"""
