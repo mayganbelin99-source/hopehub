@@ -113,8 +113,12 @@ class AuthService:
             if not session:
                 return None
             
-            # Check expiry
-            if session["expires_at"] < datetime.now(timezone.utc):
+            # Check expiry - handle timezone-aware comparison
+            expires_at = session["expires_at"]
+            if isinstance(expires_at, datetime) and expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            
+            if expires_at < datetime.now(timezone.utc):
                 # Remove expired session
                 await self.db.sessions.delete_one({"session_token": session_token})
                 return None
