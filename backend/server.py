@@ -55,6 +55,10 @@ def parse_from_mongo(item):
             pass
     return item
 
+# Dependency for auth service
+def get_auth_service():
+    return AuthService(db)
+
 # Authentication Routes
 @api_router.post("/auth/process-session")
 async def process_session(session_id: str = Form(...)):
