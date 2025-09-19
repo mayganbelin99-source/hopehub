@@ -1515,7 +1515,7 @@ const MentalHealthBuddy = () => {
               current === 'breathe in' ? 'hold' : 
               current === 'hold' ? 'breathe out' : 'breathe in'
             );
-            return current === 'hold' ? 4 : 4;
+            return 4; // Always return 4 for each phase
           }
           return prev - 1;
         });
