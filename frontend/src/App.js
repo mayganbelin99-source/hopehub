@@ -74,22 +74,26 @@ const Navigation = ({ activeTab, setActiveTab }) => {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white/50 backdrop-blur-sm">
-            <TabsTrigger value="companion" className="flex items-center space-x-2 data-[state=active]:bg-rose-100">
-              <Pill className="w-4 h-4" />
-              <span>Cancer Companion</span>
+          <TabsList className="grid w-full grid-cols-4 bg-white/50 backdrop-blur-sm h-auto p-1 gap-1">
+            <TabsTrigger value="companion" className="flex items-center justify-center space-x-1 px-3 py-2 text-sm data-[state=active]:bg-rose-100 min-h-[2.5rem]">
+              <Pill className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Cancer Companion</span>
+              <span className="sm:hidden">Companion</span>
             </TabsTrigger>
-            <TabsTrigger value="nutrition" className="flex items-center space-x-2 data-[state=active]:bg-pink-100">
-              <Utensils className="w-4 h-4" />
-              <span>Nutrition Helper</span>
+            <TabsTrigger value="nutrition" className="flex items-center justify-center space-x-1 px-3 py-2 text-sm data-[state=active]:bg-pink-100 min-h-[2.5rem]">
+              <Utensils className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Nutrition Helper</span>
+              <span className="sm:hidden">Nutrition</span>
             </TabsTrigger>
-            <TabsTrigger value="mental" className="flex items-center space-x-2 data-[state=active]:bg-purple-100">
-              <Smile className="w-4 h-4" />
-              <span>Mental Health</span>
+            <TabsTrigger value="mental" className="flex items-center justify-center space-x-1 px-3 py-2 text-sm data-[state=active]:bg-purple-100 min-h-[2.5rem]">
+              <Smile className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Mental Health</span>
+              <span className="sm:hidden">Mental</span>
             </TabsTrigger>
-            <TabsTrigger value="resources" className="flex items-center space-x-2 data-[state=active]:bg-blue-100">
-              <MapPin className="w-4 h-4" />
-              <span>Local Resources</span>
+            <TabsTrigger value="resources" className="flex items-center justify-center space-x-1 px-3 py-2 text-sm data-[state=active]:bg-blue-100 min-h-[2.5rem]">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Local Resources</span>
+              <span className="sm:hidden">Resources</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
