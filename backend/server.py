@@ -92,7 +92,7 @@ async def process_session(session_id: str = Form(...), auth_service: AuthService
     return response
 
 @api_router.post("/auth/logout")
-async def logout(request: Request, response: Response):
+async def logout(request: Request, response: Response, auth_service: AuthService = Depends(get_auth_service)):
     """Logout user"""
     session_token = request.cookies.get("session_token")
     if session_token:
