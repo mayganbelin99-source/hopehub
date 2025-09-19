@@ -245,6 +245,101 @@ class HopeHubAPITester:
         
         return success
 
+    def test_barcode_scanning(self):
+        """Test barcode scanning endpoints (HIGH PRIORITY)"""
+        print("\n📱 Testing Barcode Scanning (HIGH PRIORITY)...")
+        
+        # Test valid barcode analysis (Nutella)
+        valid_barcode_data = {
+            "barcode": "3017620422003"
+        }
+        
+        print("   ⏳ Testing valid barcode analysis...")
+        success, response = self.run_test("Analyze Valid Barcode", "POST", "barcode/analyze", 200, valid_barcode_data)
+        
+        if success and response:
+            print(f"   🎯 Product found: {response.get('product_name', 'Unknown')}")
+            print(f"   📊 Cancer patient score: {response.get('cancer_patient_score', 'N/A')}")
+            print(f"   ⚠️  Warnings: {len(response.get('warnings', []))}")
+            print(f"   💡 Recommendations: {len(response.get('recommendations', []))}")
+            print(f"   🔄 Alternatives: {len(response.get('alternatives', []))}")
+            
+            # Validate response structure
+            required_fields = ['barcode', 'product_name', 'health_score', 'cancer_patient_score']
+            missing_fields = [field for field in required_fields if field not in response]
+            if missing_fields:
+                print(f"   ❌ Missing required fields: {missing_fields}")
+                success = False
+        
+        if not success:
+            return False
+        
+        # Test invalid barcode
+        invalid_barcode_data = {
+            "barcode": "123456789"
+        }
+        
+        print("   ⏳ Testing invalid barcode...")
+        success, response = self.run_test("Analyze Invalid Barcode", "POST", "barcode/analyze", 404, invalid_barcode_data)
+        
+        if not success:
+            return False
+        
+        # Test barcode search
+        print("   ⏳ Testing product search...")
+        success, response = self.run_test("Search Products", "GET", "barcode/search?query=nutella&limit=5", 200)
+        
+        if success and response:
+            results = response.get('results', [])
+            print(f"   🔍 Found {len(results)} products")
+            if results:
+                print(f"   📦 First result: {results[0].get('product_name', 'Unknown')}")
+        
+        if not success:
+            return False
+        
+        # Test scan history
+        print("   ⏳ Testing scan history...")
+        success, response = self.run_test("Get Scan History", "GET", "barcode/history?limit=10", 200)
+        
+        if success and response:
+            scans = response.get('scans', [])
+            print(f"   📚 History contains {len(scans)} scans")
+        
+        return success
+
+    def test_barcode_edge_cases(self):
+        """Test barcode scanning edge cases"""
+        print("\n🔬 Testing Barcode Edge Cases...")
+        
+        # Test empty barcode
+        empty_barcode_data = {
+            "barcode": ""
+        }
+        
+        success, response = self.run_test("Empty Barcode", "POST", "barcode/analyze", 422, empty_barcode_data)
+        if not success:
+            return False
+        
+        # Test malformed barcode
+        malformed_barcode_data = {
+            "barcode": "abc123xyz"
+        }
+        
+        success, response = self.run_test("Malformed Barcode", "POST", "barcode/analyze", 404, malformed_barcode_data)
+        if not success:
+            return False
+        
+        # Test search with short query
+        success, response = self.run_test("Short Search Query", "GET", "barcode/search?query=a", 400)
+        if not success:
+            return False
+        
+        # Test search with empty query
+        success, response = self.run_test("Empty Search Query", "GET", "barcode/search?query=", 400)
+        
+        return success
+
 def main():
     print("🏥 HopeHub API Testing Suite")
     print("=" * 50)
