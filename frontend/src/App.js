@@ -110,21 +110,27 @@ const AuthProvider = ({ children }) => {
   };
 
   const login = async (sessionId) => {
+    console.log('Attempting login with session ID:', sessionId);
     try {
       const formData = new FormData();
       formData.append('session_id', sessionId);
       
+      console.log('Sending request to:', `${API}/auth/process-session`);
       const response = await axios.post(`${API}/auth/process-session`, formData, {
         withCredentials: true
       });
       
+      console.log('Response:', response.data);
       if (response.data.success) {
         setUser(response.data.user);
+        console.log('User set:', response.data.user);
         return true;
       }
+      console.log('No success in response');
       return false;
     } catch (error) {
       console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
       return false;
     }
   };
