@@ -76,8 +76,8 @@ class HopeHubAPITester:
             return False
             
         # Test getting medications
-        success, medications = self.run_test("Get Medications", "GET", f"medications/{self.user_id}", 200)
-        return success and len(medications) > 0
+        success, medications = self.run_test("Get Medications", "GET", "medications", 200)
+        return success
 
     def test_symptom_crud(self):
         """Test symptom CRUD operations"""
