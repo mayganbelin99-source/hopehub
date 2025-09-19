@@ -133,6 +133,32 @@ class MilestoneRequest(BaseModel):
     date: str
     milestone_type: str  # diagnosis, treatment_start, surgery, remission, etc.
 
-class CaregiverInviteRequest(BaseModel):
-    caregiver_email: EmailStr
-    caregiver_name: str
+class BarcodeRequest(BaseModel):
+    barcode: str
+    patient_preferences: Optional[Dict[str, Any]] = None
+
+class NutritionAnalysis(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    barcode: str
+    product_name: str
+    brand: Optional[str] = None
+    ingredients: Optional[str] = None
+    allergens: List[str] = Field(default_factory=list)
+    nutrition_grade: Optional[str] = None
+    nova_group: Optional[int] = None
+    nutriments: Dict[str, float] = Field(default_factory=dict)
+    categories: List[str] = Field(default_factory=list)
+    health_score: Optional[float] = None
+    cancer_patient_score: Optional[float] = None
+    recommendations: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    alternatives: List[str] = Field(default_factory=list)
+    image_url: Optional[str] = None
+    analysis_date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class ProductSearchResult(BaseModel):
+    barcode: str
+    product_name: str
+    brand: Optional[str] = None
+    image_url: Optional[str] = None
+    nutrition_grade: Optional[str] = None
