@@ -61,7 +61,7 @@ def get_auth_service():
 
 # Authentication Routes
 @api_router.post("/auth/process-session")
-async def process_session(session_id: str = Form(...)):
+async def process_session(session_id: str = Form(...), auth_service: AuthService = Depends(get_auth_service)):
     """Process session ID from Emergent Auth"""
     user_data = await auth_service.process_session_id(session_id)
     
