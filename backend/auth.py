@@ -10,6 +10,20 @@ import os
 
 logger = logging.getLogger(__name__)
 
+# Database dependency - will be set by the main application
+_db_instance = None
+
+def set_database(db: AsyncIOMotorDatabase):
+    """Set the database instance for dependency injection"""
+    global _db_instance
+    _db_instance = db
+
+def get_database() -> AsyncIOMotorDatabase:
+    """Get database dependency"""
+    if _db_instance is None:
+        raise RuntimeError("Database not initialized. Call set_database() first.")
+    return _db_instance
+
 class AuthService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
