@@ -898,7 +898,7 @@ const CancerCompanion = () => {
 
   const fetchMedications = async () => {
     try {
-      const response = await axios.get(`${API}/medications`, { withCredentials: true });
+      const response = await axios.get(`${API}/medications`);
       setMedications(response.data);
     } catch (error) {
       console.error('Error fetching medications:', error);
@@ -907,7 +907,7 @@ const CancerCompanion = () => {
 
   const fetchSymptoms = async () => {
     try {
-      const response = await axios.get(`${API}/symptoms`, { withCredentials: true });
+      const response = await axios.get(`${API}/symptoms`);
       setSymptoms(response.data.slice(0, 10));
     } catch (error) {
       console.error('Error fetching symptoms:', error);
@@ -916,7 +916,7 @@ const CancerCompanion = () => {
 
   const fetchAppointments = async () => {
     try {
-      const response = await axios.get(`${API}/appointments`, { withCredentials: true });
+      const response = await axios.get(`${API}/appointments`);
       setAppointments(response.data);
     } catch (error) {
       console.error('Error fetching appointments:', error);
@@ -927,9 +927,10 @@ const CancerCompanion = () => {
     try {
       const medData = {
         ...medForm,
+        user_id: 'demo-user-123',
         reminder_times: medForm.reminder_times || []
       };
-      await axios.post(`${API}/medications`, medData, { withCredentials: true });
+      await axios.post(`${API}/medications`, medData);
       setMedForm({
         medication_name: '',
         dosage: '',
@@ -949,9 +950,10 @@ const CancerCompanion = () => {
     try {
       const symptomData = {
         ...symptomForm,
+        user_id: 'demo-user-123',
         severity: symptomForm.severity[0]
       };
-      await axios.post(`${API}/symptoms`, symptomData, { withCredentials: true });
+      await axios.post(`${API}/symptoms`, symptomData);
       setSymptomForm({
         symptom_type: '',
         severity: [5],
@@ -967,7 +969,11 @@ const CancerCompanion = () => {
 
   const addAppointment = async () => {
     try {
-      await axios.post(`${API}/appointments`, appointmentForm, { withCredentials: true });
+      const appointmentData = {
+        ...appointmentForm,
+        user_id: 'demo-user-123'
+      };
+      await axios.post(`${API}/appointments`, appointmentData);
       setAppointmentForm({
         appointment_type: '',
         doctor_name: '',
