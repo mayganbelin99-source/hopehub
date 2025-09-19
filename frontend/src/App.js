@@ -2237,11 +2237,11 @@ const AppContent = ({ activeTab, setActiveTab, currentView, setCurrentView }) =>
       case 'companion':
         return <CancerCompanion />;
       case 'nutrition':
-        return <div>Nutrition Helper - Coming Soon</div>; // Will implement shortly
+        return <NutritionHelper />;
       case 'mental':
-        return <div>Mental Health Buddy - Coming Soon</div>; // Will implement shortly
+        return <MentalHealthBuddy />;
       case 'resources':
-        return <div>Local Resource Finder - Coming Soon</div>; // Will implement shortly
+        return <LocalResourceFinder />;
       default:
         return <CancerCompanion />;
     }
