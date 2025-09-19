@@ -168,7 +168,7 @@ class HopeHubAPITester:
             return False
             
         # Test getting nutrition entries
-        success, entries = self.run_test("Get Nutrition Entries", "GET", f"nutrition/{self.user_id}", 200)
+        success, entries = self.run_test("Get Nutrition Entries", "GET", "nutrition", 200)
         return success
 
     def test_resources_crud(self):
