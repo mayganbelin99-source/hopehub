@@ -1226,6 +1226,318 @@ const CancerCompanion = () => {
   );
 };
 
+// Barcode Scanner Component
+const BarcodeScanner = () => {
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [manualBarcode, setManualBarcode] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
+  const videoRef = useRef(null);
+  const scannerRef = useRef(null);
+
+  // Import ZXing scanner dynamically to handle any loading issues
+  const [ZXingScanner, setZXingScanner] = useState(null);
+  
+  useEffect(() => {
+    const loadScanner = async () => {
+      try {
+        const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        setZXingScanner(new BrowserMultiFormatReader());
+      } catch (err) {
+        console.error('Failed to load barcode scanner:', err);
+        setError('Camera scanner not available. Please use manual input.');
+      }
+    };
+    loadScanner();
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.reset();
+      }
+    };
+  }, []);
+
+  const startScanning = async () => {
+    if (!ZXingScanner) {
+      setError('Scanner not loaded. Please use manual input.');
+      return;
+    }
+
+    try {
+      setIsScanning(true);
+      setError('');
+      
+      const devices = await ZXingScanner.listVideoInputDevices();
+      if (devices.length === 0) {
+        throw new Error('No camera devices found');
+      }
+
+      // Use the first available camera (or back camera if available)
+      const selectedDevice = devices.find(device => 
+        device.label.toLowerCase().includes('back') || 
+        device.label.toLowerCase().includes('rear')
+      ) || devices[0];
+
+      scannerRef.current = ZXingScanner;
+      
+      await ZXingScanner.decodeOnceFromVideoDevice(selectedDevice.deviceId, videoRef.current)
+        .then(result => {
+          if (result) {
+            handleBarcodeDetected(result.getText());
+          }
+        })
+        .catch(err => {
+          if (err.name !== 'NotFoundException') {
+            console.error('Scanning error:', err);
+            setError('Failed to access camera. Please ensure camera permissions are granted.');
+          }
+        });
+        
+    } catch (err) {
+      console.error('Camera access error:', err);
+      setError('Failed to access camera. Please use manual input or check permissions.');
+    }
+  };
+
+  const stopScanning = () => {
+    if (scannerRef.current) {
+      scannerRef.current.reset();
+    }
+    setIsScanning(false);
+  };
+
+  const handleBarcodeDetected = async (barcode) => {
+    console.log('Barcode detected:', barcode);
+    stopScanning();
+    await analyzeBarcode(barcode);
+  };
+
+  const analyzeBarcode = async (barcode) => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await axios.post(`${API}/barcode/analyze`, {
+        barcode: barcode.trim()
+      }, { withCredentials: true });
+      
+      setScanResult(response.data);
+    } catch (err) {
+      console.error('Barcode analysis error:', err);
+      if (err.response?.status === 404) {
+        setError('Product not found in nutrition database. Try another product.');
+      } else {
+        setError('Failed to analyze barcode. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualSubmit = () => {
+    if (manualBarcode.trim()) {
+      analyzeBarcode(manualBarcode.trim());
+      setShowManualInput(false);
+      setManualBarcode('');
+    }
+  };
+
+  const resetScanner = () => {
+    setScanResult(null);
+    setError('');
+    setManualBarcode('');
+    setShowManualInput(false);
+  };
+
+  const getHealthScoreColor = (score) => {
+    if (score >= 8) return 'text-green-600 bg-green-100';
+    if (score >= 6) return 'text-yellow-600 bg-yellow-100';
+    if (score >= 4) return 'text-orange-600 bg-orange-100';
+    return 'text-red-600 bg-red-100';
+  };
+
+  return (
+    <Card className="bg-gradient-to-br from-orange-50 to-yellow-100 border-orange-200">
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2">
+          <Search className="w-5 h-5 text-orange-600" />
+          <span>Food Scanner</span>
+        </CardTitle>
+        <CardDescription>
+          Scan barcodes to get health scores and cancer-friendly alternatives
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!scanResult ? (
+          <div className="space-y-4">
+            {/* Camera Scanner */}
+            <div className="text-center">
+              {!isScanning ? (
+                <div className="space-y-4">
+                  <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-orange-500" />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Button
+                      onClick={startScanning}
+                      className="bg-orange-500 hover:bg-orange-600"
+                      disabled={!ZXingScanner}
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Start Camera Scanner
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowManualInput(true)}
+                      className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                    >
+                      Manual Input
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <video
+                    ref={videoRef}
+                    className="w-full max-w-sm mx-auto rounded-lg border-2 border-orange-200"
+                    style={{ maxHeight: '300px' }}
+                    autoPlay
+                    muted
+                    playsInline
+                  />
+                  <p className="text-sm text-gray-600">Position barcode in the camera view</p>
+                  <Button
+                    onClick={stopScanning}
+                    variant="outline"
+                    className="border-orange-200 text-orange-600"
+                  >
+                    Stop Scanning
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Manual Input Dialog */}
+            {showManualInput && (
+              <div className="bg-white p-4 rounded-lg border space-y-3">
+                <h4 className="font-semibold">Enter Barcode Manually</h4>
+                <Input
+                  placeholder="Enter barcode (e.g., 3017620422003)"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleManualSubmit()}
+                />
+                <div className="flex space-x-2">
+                  <Button onClick={handleManualSubmit} className="bg-orange-500 hover:bg-orange-600">
+                    Analyze
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowManualInput(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-4">
+                <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Analyzing nutrition data...</p>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-700">
+                  {error}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        ) : (
+          /* Scan Results */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">Nutrition Analysis</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetScanner}
+                className="border-orange-200 text-orange-600"
+              >
+                Scan Another
+              </Button>
+            </div>
+
+            {/* Product Info */}
+            <div className="bg-white p-4 rounded-lg border">
+              <div className="flex items-start space-x-4">
+                {scanResult.image_url && (
+                  <img
+                    src={scanResult.image_url}
+                    alt={scanResult.product_name}
+                    className="w-20 h-20 object-cover rounded-lg border"
+                  />
+                )}
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-800">{scanResult.product_name}</h4>
+                  <p className="text-sm text-gray-600">{scanResult.brand}</p>
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Badge className={`px-3 py-1 rounded-full ${getHealthScoreColor(scanResult.cancer_health_score)}`}>
+                      Cancer Health Score: {scanResult.cancer_health_score}/10
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Health Assessment */}
+            {scanResult.health_assessment && (
+              <div className="bg-white p-4 rounded-lg border">
+                <h5 className="font-semibold mb-2 text-gray-800">Health Assessment</h5>
+                <p className="text-sm text-gray-700">{scanResult.health_assessment}</p>
+              </div>
+            )}
+
+            {/* Nutrition Facts */}
+            {scanResult.nutrition_per_100g && (
+              <div className="bg-white p-4 rounded-lg border">
+                <h5 className="font-semibold mb-3 text-gray-800">Nutrition Facts (per 100g)</h5>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {Object.entries(scanResult.nutrition_per_100g).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                      <span className="text-gray-800">
+                        {typeof value === 'number' ? value.toFixed(1) : value}
+                        {key.includes('energy') ? ' kcal' : 
+                         key.includes('salt') || key.includes('sugar') || key.includes('fat') || key.includes('protein') ? 'g' : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Alternatives */}
+            {scanResult.recommended_alternatives && scanResult.recommended_alternatives.length > 0 && (
+              <div className="bg-white p-4 rounded-lg border">
+                <h5 className="font-semibold mb-2 text-gray-800">Cancer-Friendly Alternatives</h5>
+                <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {scanResult.recommended_alternatives.join('\n')}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // Nutrition Helper Component (updated with authentication)
 const NutritionHelper = () => {
   const { user } = useAuth();
