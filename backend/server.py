@@ -58,13 +58,9 @@ def parse_from_mongo(item):
             pass
     return item
 
-# Dependency for auth service
-def get_auth_service():
-    return AuthService(db)
-
 # Authentication Routes
 @api_router.post("/auth/process-session")
-async def process_session(session_id: str = Form(...), auth_service: AuthService = Depends(get_auth_service)):
+async def process_session(session_id: str = Form(...), db: AsyncIOMotorDatabase = Depends(get_database)):
     """Process session ID from Emergent Auth"""
     user_data = await auth_service.process_session_id(session_id)
     
