@@ -1414,13 +1414,10 @@ const BarcodeScanner = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <video
-                    ref={videoRef}
-                    className="w-full max-w-sm mx-auto rounded-lg border-2 border-orange-200"
-                    style={{ maxHeight: '300px' }}
-                    autoPlay
-                    muted
-                    playsInline
+                  <div
+                    ref={scannerRef}
+                    className="w-full max-w-sm mx-auto rounded-lg border-2 border-orange-200 bg-black"
+                    style={{ minHeight: '300px' }}
                   />
                   <p className="text-sm text-gray-600">Position barcode in the camera view</p>
                   <Button
