@@ -34,9 +34,6 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialize auth service
-auth_service = AuthService(db)
-
 # Helper functions for data conversion
 def prepare_for_mongo(data):
     if isinstance(data.get('appointment_date'), date):
