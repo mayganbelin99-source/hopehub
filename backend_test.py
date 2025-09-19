@@ -84,12 +84,12 @@ class HopeHubAPITester:
         
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers)
+                response = self.session.get(url, headers=headers)
             elif method == 'POST':
                 if files:
-                    response = requests.post(url, data=data)
+                    response = self.session.post(url, data=data)
                 else:
-                    response = requests.post(url, json=data, headers=headers)
+                    response = self.session.post(url, json=data, headers=headers)
 
             success = response.status_code == expected_status
             if success:
