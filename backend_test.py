@@ -143,12 +143,12 @@ class HopeHubAPITester:
             return False
             
         # Test getting mood entries
-        success, mood_entries = self.run_test("Get Mood Entries", "GET", f"mood/{self.user_id}", 200)
+        success, mood_entries = self.run_test("Get Mood Entries", "GET", "mood", 200)
         if not success:
             return False
             
         # Test mood trends
-        success, trends = self.run_test("Get Mood Trends", "GET", f"mood/trends/{self.user_id}?days=30", 200)
+        success, trends = self.run_test("Get Mood Trends", "GET", "mood/trends?days=30", 200)
         return success
 
     def test_nutrition_crud(self):
