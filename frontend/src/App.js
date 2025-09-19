@@ -1234,78 +1234,93 @@ const BarcodeScanner = () => {
   const [error, setError] = useState('');
   const [manualBarcode, setManualBarcode] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
-  const videoRef = useRef(null);
   const scannerRef = useRef(null);
 
-  // Import ZXing scanner dynamically to handle any loading issues
-  const [ZXingScanner, setZXingScanner] = useState(null);
-  
+  // Initialize Quagga when component mounts
   useEffect(() => {
-    const loadScanner = async () => {
-      try {
-        const { BrowserMultiFormatReader } = await import('@zxing/browser');
-        setZXingScanner(new BrowserMultiFormatReader());
-      } catch (err) {
-        console.error('Failed to load barcode scanner:', err);
-        setError('Camera scanner not available. Please use manual input.');
-      }
-    };
-    loadScanner();
-
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.reset();
+      // Cleanup when component unmounts
+      if (isScanning) {
+        stopScanning();
       }
     };
   }, []);
 
   const startScanning = async () => {
-    if (!ZXingScanner) {
-      setError('Scanner not loaded. Please use manual input.');
-      return;
-    }
-
     try {
       setIsScanning(true);
       setError('');
       
-      const devices = await ZXingScanner.listVideoInputDevices();
-      if (devices.length === 0) {
-        throw new Error('No camera devices found');
-      }
-
-      // Use the first available camera (or back camera if available)
-      const selectedDevice = devices.find(device => 
-        device.label.toLowerCase().includes('back') || 
-        device.label.toLowerCase().includes('rear')
-      ) || devices[0];
-
-      scannerRef.current = ZXingScanner;
+      // Import Quagga dynamically
+      const Quagga = await import('quagga');
       
-      await ZXingScanner.decodeOnceFromVideoDevice(selectedDevice.deviceId, videoRef.current)
-        .then(result => {
-          if (result) {
-            handleBarcodeDetected(result.getText());
+      // Initialize QuaggaJS
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: scannerRef.current,
+          constraints: {
+            width: 640,
+            height: 480,
+            facingMode: "environment" // Use back camera if available
           }
-        })
-        .catch(err => {
-          if (err.name !== 'NotFoundException') {
-            console.error('Scanning error:', err);
-            setError('Failed to access camera. Please ensure camera permissions are granted.');
+        },
+        decoder: {
+          readers: [
+            "ean_reader",
+            "ean_8_reader", 
+            "code_128_reader",
+            "code_39_reader",
+            "code_39_vin_reader",
+            "codabar_reader",
+            "upc_reader",
+            "upc_e_reader",
+            "i2of5_reader"
+          ]
+        },
+        locate: true,
+        locator: {
+          halfSample: true,
+          patchSize: "medium", // x-small, small, medium, large, x-large
+          debug: false
+        }
+      }, (err) => {
+        if (err) {
+          console.error('Failed to initialize barcode scanner:', err);
+          setError('Failed to access camera. Please ensure camera permissions are granted or use manual input.');
+          setIsScanning(false);
+          return;
+        }
+        
+        console.log("Barcode scanner initialized successfully");
+        Quagga.start();
+        
+        // Add detection handler
+        Quagga.onDetected((result) => {
+          if (result && result.codeResult && result.codeResult.code) {
+            console.log('Barcode detected:', result.codeResult.code);
+            handleBarcodeDetected(result.codeResult.code);
           }
         });
+      });
         
     } catch (err) {
       console.error('Camera access error:', err);
       setError('Failed to access camera. Please use manual input or check permissions.');
+      setIsScanning(false);
     }
   };
 
-  const stopScanning = () => {
-    if (scannerRef.current) {
-      scannerRef.current.reset();
+  const stopScanning = async () => {
+    try {
+      const Quagga = await import('quagga');
+      Quagga.stop();
+      setIsScanning(false);
+    } catch (err) {
+      console.error('Error stopping scanner:', err);
+      setIsScanning(false);
     }
-    setIsScanning(false);
   };
 
   const handleBarcodeDetected = async (barcode) => {
