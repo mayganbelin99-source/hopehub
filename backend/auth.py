@@ -162,13 +162,15 @@ class AuthService:
             logger.error(f"Error logging out user: {str(e)}")
 
 # Dependency for getting current user
-async def get_current_user_dependency(request: Request, auth_service: AuthService = Depends()) -> UserProfile:
+async def get_current_user_dependency(request: Request, db: AsyncIOMotorDatabase = Depends(get_database)) -> UserProfile:
     """FastAPI dependency for getting current user"""
+    auth_service = AuthService(db)
     user = await auth_service.get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     return user
 
-async def get_optional_current_user(request: Request, auth_service: AuthService = Depends()) -> Optional[UserProfile]:
+async def get_optional_current_user(request: Request, db: AsyncIOMotorDatabase = Depends(get_database)) -> Optional[UserProfile]:
     """FastAPI dependency for optionally getting current user"""
+    auth_service = AuthService(db)
     return await auth_service.get_current_user(request)
