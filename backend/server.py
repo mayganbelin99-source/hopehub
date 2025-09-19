@@ -24,6 +24,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Initialize database dependency
+set_database(db)
+
 # Create the main app
 app = FastAPI(title="HopeHub API", description="Cancer companion and wellness platform with authentication")
 
