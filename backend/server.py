@@ -92,8 +92,9 @@ async def process_session(session_id: str = Form(...), db: AsyncIOMotorDatabase 
     return response
 
 @api_router.post("/auth/logout")
-async def logout(request: Request, response: Response, auth_service: AuthService = Depends(get_auth_service)):
+async def logout(request: Request, response: Response, db: AsyncIOMotorDatabase = Depends(get_database)):
     """Logout user"""
+    auth_service = AuthService(db)
     session_token = request.cookies.get("session_token")
     if session_token:
         await auth_service.logout_user(session_token)
