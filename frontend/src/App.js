@@ -1454,27 +1454,8 @@ const NutritionHelper = () => {
         </Card>
       </div>
 
-      {/* Future Barcode Scanner Section */}
-      <Card className="bg-gradient-to-br from-orange-50 to-yellow-100 border-orange-200">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Search className="w-5 h-5 text-orange-600" />
-            <span>Food Scanner</span>
-          </CardTitle>
-          <CardDescription>Scan barcodes to get health scores and alternatives (Coming Soon)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-orange-500" />
-            </div>
-            <p className="text-gray-600 mb-4">Barcode scanning for instant nutrition analysis</p>
-            <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200">
-              Feature coming soon
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Barcode Scanner Section */}
+      <BarcodeScanner />
     </div>
   );
 };
