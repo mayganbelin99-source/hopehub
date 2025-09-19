@@ -6,7 +6,7 @@ from datetime import datetime
 
 class QuickHopeHubTester:
     def __init__(self):
-        self.base_url = "https://hopehub-support.preview.emergentagent.com"
+        self.base_url = "https://cancer-companion-1.preview.emergentagent.com"
         self.api_url = f"{self.base_url}/api"
         self.user_id = "test-user-123"
         self.passed = 0

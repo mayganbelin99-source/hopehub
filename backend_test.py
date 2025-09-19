@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 
 class HopeHubAPITester:
-    def __init__(self, base_url="https://hopehub-support.preview.emergentagent.com"):
+    def __init__(self, base_url="https://cancer-companion-1.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
