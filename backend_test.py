@@ -97,7 +97,7 @@ class HopeHubAPITester:
             return False
             
         # Test getting symptoms
-        success, symptoms = self.run_test("Get Symptoms", "GET", f"symptoms/{self.user_id}", 200)
+        success, symptoms = self.run_test("Get Symptoms", "GET", "symptoms", 200)
         return success
 
     def test_appointment_crud(self):
