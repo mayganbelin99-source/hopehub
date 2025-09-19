@@ -13,7 +13,7 @@ import json
 
 # Import our models and auth
 from models import *
-from auth import AuthService, get_current_user_dependency, get_optional_current_user, set_database
+from auth import AuthService, get_current_user_dependency, get_optional_current_user, set_database, get_database
 
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
