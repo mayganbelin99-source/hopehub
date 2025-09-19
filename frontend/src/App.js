@@ -177,10 +177,22 @@ const LoginPage = () => {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    // Check for session_id in URL fragment
+    // Check for session_id in URL fragment or query parameters
     const hash = window.location.hash;
+    const search = window.location.search;
+    let sessionId = null;
+    
+    // Check hash fragment first
     if (hash.includes('session_id=')) {
-      const sessionId = hash.split('session_id=')[1].split('&')[0];
+      sessionId = hash.split('session_id=')[1].split('&')[0];
+    }
+    // Check query parameters
+    else if (search.includes('session_id=')) {
+      const urlParams = new URLSearchParams(search);
+      sessionId = urlParams.get('session_id');
+    }
+    
+    if (sessionId) {
       processSessionId(sessionId);
     }
   }, []);
