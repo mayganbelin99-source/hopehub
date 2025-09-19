@@ -198,14 +198,17 @@ const LoginPage = () => {
   }, []);
 
   const processSessionId = async (sessionId) => {
+    console.log('Processing session ID:', sessionId);
     setProcessing(true);
     try {
       const success = await login(sessionId);
+      console.log('Login success:', success);
       if (success) {
         // Clear the URL fragment
         window.history.replaceState({}, document.title, window.location.pathname);
         navigate('/dashboard');
       } else {
+        console.error('Authentication failed - no success from backend');
         alert('Authentication failed. Please try again.');
       }
     } catch (error) {
