@@ -384,7 +384,7 @@ class HopeHubAPITester:
         
         # Test malformed barcode
         malformed_barcode_data = {
-            "barcode": "abc123xyz"
+            "barcode": "invalid-barcode-format"
         }
         
         success, response = self.run_test("Malformed Barcode", "POST", "barcode/analyze", 404, malformed_barcode_data)
