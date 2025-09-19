@@ -438,7 +438,15 @@ async def get_scan_history(
             {"user_id": current_user.id}
         ).sort("analysis_date", -1).limit(limit).to_list(length=None)
         
-        return {"scans": scans, "count": len(scans)}
+        # Clean up MongoDB ObjectId fields for JSON serialization
+        cleaned_scans = []
+        for scan in scans:
+            # Remove MongoDB ObjectId field
+            if '_id' in scan:
+                del scan['_id']
+            cleaned_scans.append(scan)
+        
+        return {"scans": cleaned_scans, "count": len(cleaned_scans)}
         
     except Exception as e:
         logger.error(f"Error fetching scan history for user {current_user.id}: {str(e)}")
