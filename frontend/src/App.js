@@ -1398,7 +1398,6 @@ const BarcodeScanner = () => {
                     <Button
                       onClick={startScanning}
                       className="bg-orange-500 hover:bg-orange-600"
-                      disabled={!ZXingScanner}
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Start Camera Scanner
