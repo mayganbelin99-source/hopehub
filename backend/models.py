@@ -133,6 +133,10 @@ class MilestoneRequest(BaseModel):
     date: str
     milestone_type: str  # diagnosis, treatment_start, surgery, remission, etc.
 
+class CaregiverInviteRequest(BaseModel):
+    caregiver_email: str = Field(..., description="Email of the caregiver to invite")
+    caregiver_name: str = Field(..., description="Name of the caregiver")
+
 class BarcodeRequest(BaseModel):
     barcode: str
     patient_preferences: Optional[Dict[str, Any]] = None
