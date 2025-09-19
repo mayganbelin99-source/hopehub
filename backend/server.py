@@ -336,7 +336,421 @@ async def get_mood_trends(current_user: UserProfile = Depends(get_current_user_d
         "trend": "improving" if len(mood_entries) > 1 and mood_entries[-1]["mood_rating"] > mood_entries[0]["mood_rating"] else "stable"
     }
 
-# AI Integration routes (updated with proper authentication)
+# Initialize services
+nutrition_cache = TTLCache(maxsize=1000, ttl=3600)  # 1 hour cache
+
+# Barcode Scanning and Nutrition Analysis Routes
+@api_router.post("/barcode/analyze")
+async def analyze_barcode(
+    request: BarcodeRequest,
+    current_user: UserProfile = Depends(get_current_user_dependency)
+):
+    """
+    Analyze a food product by barcode and return comprehensive nutrition data,
+    health scores, and cancer-specific recommendations.
+    """
+    try:
+        barcode = request.barcode.strip()
+        
+        # Check cache first
+        if barcode in nutrition_cache:
+            cached_analysis = nutrition_cache[barcode]
+            logger.info(f"Returning cached analysis for barcode {barcode}")
+            return cached_analysis
+        
+        # Get nutrition data from Open Food Facts
+        nutrition_data = await get_open_food_facts_data(barcode)
+        
+        if not nutrition_data:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Product with barcode {barcode} not found in nutrition database"
+            )
+        
+        # Calculate health scores
+        health_scores = calculate_cancer_patient_health_score(nutrition_data)
+        
+        # Generate recommendations
+        recommendations = generate_cancer_patient_recommendations(nutrition_data, health_scores)
+        
+        # Create analysis object
+        analysis = NutritionAnalysis(
+            barcode=barcode,
+            product_name=nutrition_data.get('product_name', 'Unknown Product'),
+            brand=nutrition_data.get('brands', ''),
+            ingredients=nutrition_data.get('ingredients_text', ''),
+            allergens=nutrition_data.get('allergens_tags', []),
+            nutrition_grade=nutrition_data.get('nutrition_grades', ''),
+            nova_group=nutrition_data.get('nova_group', 0),
+            nutriments=parse_nutriments(nutrition_data.get('nutriments', {})),
+            categories=nutrition_data.get('categories_tags', []),
+            health_score=health_scores.get('overall_score', 0),
+            cancer_patient_score=health_scores.get('cancer_patient_score', 0),
+            recommendations=recommendations.get('recommendations', []),
+            warnings=recommendations.get('warnings', []),
+            alternatives=recommendations.get('alternatives', []),
+            image_url=nutrition_data.get('image_url', '')
+        )
+        
+        # Cache the analysis
+        nutrition_cache[barcode] = analysis
+        
+        # Save to user's scan history
+        analysis_dict = analysis.dict()
+        analysis_dict['user_id'] = current_user.id
+        await db.nutrition_scans.insert_one(analysis_dict)
+        
+        return analysis
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing barcode {request.barcode}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during barcode analysis")
+
+@api_router.get("/barcode/search")
+async def search_products(
+    query: str,
+    limit: int = 10,
+    current_user: UserProfile = Depends(get_current_user_dependency)
+):
+    """
+    Search for products by name or ingredients for manual entry fallback.
+    """
+    try:
+        if len(query.strip()) < 2:
+            raise HTTPException(status_code=400, detail="Search query must be at least 2 characters")
+        
+        search_results = await search_open_food_facts(query, limit)
+        return {"results": search_results, "count": len(search_results)}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error searching products with query '{query}': {str(e)}")
+        raise HTTPException(status_code=500, detail="Search service temporarily unavailable")
+
+@api_router.get("/barcode/history")
+async def get_scan_history(
+    current_user: UserProfile = Depends(get_current_user_dependency),
+    limit: int = 20
+):
+    """
+    Get user's barcode scan history.
+    """
+    try:
+        scans = await db.nutrition_scans.find(
+            {"user_id": current_user.id}
+        ).sort("analysis_date", -1).limit(limit).to_list(length=None)
+        
+        return {"scans": scans, "count": len(scans)}
+        
+    except Exception as e:
+        logger.error(f"Error fetching scan history for user {current_user.id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Unable to fetch scan history")
+
+# Helper functions for nutrition analysis
+async def get_open_food_facts_data(barcode: str) -> Optional[Dict[str, Any]]:
+    """
+    Retrieve product data from Open Food Facts API.
+    """
+    try:
+        url = f"https://world.openfoodfacts.org/api/v2/product/{barcode}"
+        headers = {
+            'User-Agent': 'HopeHub/1.0 (Cancer Patient Health App) Contact: support@hopehub.com'
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                if response.status != 200:
+                    logger.warning(f"Open Food Facts API returned status {response.status} for barcode {barcode}")
+                    return None
+                
+                data = await response.json()
+                
+                if data.get('status') != 1 or 'product' not in data:
+                    logger.info(f"Product not found in Open Food Facts for barcode {barcode}")
+                    return None
+                
+                return data['product']
+                
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout retrieving data for barcode {barcode}")
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving Open Food Facts data for barcode {barcode}: {str(e)}")
+        return None
+
+async def search_open_food_facts(query: str, limit: int = 10) -> List[ProductSearchResult]:
+    """
+    Search Open Food Facts database by product name or ingredients.
+    """
+    try:
+        url = "https://world.openfoodfacts.org/cgi/search.pl"
+        params = {
+            'search_terms': query,
+            'search_simple': 1,
+            'action': 'process',
+            'json': 1,
+            'page_size': limit
+        }
+        headers = {
+            'User-Agent': 'HopeHub/1.0 (Cancer Patient Health App) Contact: support@hopehub.com'
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, params=params, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                if response.status != 200:
+                    return []
+                
+                data = await response.json()
+                products = data.get('products', [])
+                
+                results = []
+                for product in products:
+                    if product.get('code') and product.get('product_name'):
+                        results.append(ProductSearchResult(
+                            barcode=product['code'],
+                            product_name=product['product_name'],
+                            brand=product.get('brands', ''),
+                            image_url=product.get('image_url', ''),
+                            nutrition_grade=product.get('nutrition_grades', '')
+                        ))
+                
+                return results
+                
+    except Exception as e:
+        logger.error(f"Error searching Open Food Facts with query '{query}': {str(e)}")
+        return []
+
+def parse_nutriments(nutriments: Dict[str, Any]) -> Dict[str, float]:
+    """
+    Parse and standardize nutriment data from Open Food Facts.
+    """
+    standardized_nutrients = {}
+    
+    # Map common nutrients to standardized keys
+    nutrient_mapping = {
+        'energy_100g': 'energy_kcal',
+        'energy-kcal_100g': 'energy_kcal',
+        'fat_100g': 'fat',
+        'saturated-fat_100g': 'saturated_fat',
+        'carbohydrates_100g': 'carbohydrates',
+        'sugars_100g': 'sugars',
+        'fiber_100g': 'fiber',
+        'proteins_100g': 'proteins',
+        'salt_100g': 'salt',
+        'sodium_100g': 'sodium',
+        'vitamin-c_100g': 'vitamin_c',
+        'calcium_100g': 'calcium',
+        'iron_100g': 'iron'
+    }
+    
+    for off_key, standard_key in nutrient_mapping.items():
+        if off_key in nutriments and nutriments[off_key] is not None:
+            try:
+                value = float(nutriments[off_key])
+                if standard_key == 'energy_kcal' and 'energy_100g' in nutriments:
+                    # Convert kJ to kcal if needed
+                    value = value / 4.184 if value > 1000 else value
+                standardized_nutrients[standard_key] = round(value, 2)
+            except (ValueError, TypeError):
+                pass
+    
+    return standardized_nutrients
+
+def calculate_cancer_patient_health_score(nutrition_data: Dict[str, Any]) -> Dict[str, float]:
+    """
+    Calculate health scores specifically tailored for cancer patients.
+    """
+    scores = {
+        'overall_score': 50.0,
+        'cancer_patient_score': 50.0,
+        'processing_score': 50.0,
+        'nutrient_density_score': 50.0,
+        'additive_safety_score': 50.0
+    }
+    
+    try:
+        # NOVA group scoring (food processing level)
+        nova_group = nutrition_data.get('nova_group', 1)
+        if nova_group == 1:  # Unprocessed
+            scores['processing_score'] = 100.0
+        elif nova_group == 2:  # Processed culinary ingredients
+            scores['processing_score'] = 80.0
+        elif nova_group == 3:  # Processed foods
+            scores['processing_score'] = 50.0
+        else:  # Ultra-processed foods
+            scores['processing_score'] = 20.0
+        
+        # Nutrient density scoring
+        nutriments = parse_nutriments(nutrition_data.get('nutriments', {}))
+        energy_kcal = nutriments.get('energy_kcal', 100)
+        
+        if energy_kcal > 0:
+            # Calculate beneficial nutrients per 100 kcal
+            fiber = nutriments.get('fiber', 0)
+            proteins = nutriments.get('proteins', 0)
+            vitamin_c = nutriments.get('vitamin_c', 0)
+            
+            nutrient_density = ((fiber * 5) + (proteins * 2) + (vitamin_c * 1)) / energy_kcal * 100
+            scores['nutrient_density_score'] = min(nutrient_density * 10, 100.0)
+        
+        # Additive safety scoring
+        ingredients = nutrition_data.get('ingredients_text', '').lower()
+        harmful_additives = [
+            'sodium nitrite', 'sodium nitrate', 'bha', 'bht',
+            'artificial colors', 'red dye', 'yellow dye',
+            'aspartame', 'high fructose corn syrup'
+        ]
+        
+        additive_penalties = sum(20 for additive in harmful_additives if additive in ingredients)
+        scores['additive_safety_score'] = max(100.0 - additive_penalties, 0.0)
+        
+        # Cancer-specific considerations
+        cancer_beneficial_factors = 0
+        
+        # High fiber content (good for cancer patients)
+        if nutriments.get('fiber', 0) > 5:
+            cancer_beneficial_factors += 20
+        elif nutriments.get('fiber', 0) > 3:
+            cancer_beneficial_factors += 10
+        
+        # Low sugar content (important during treatment)
+        sugars = nutriments.get('sugars', 0)
+        if sugars < 5:
+            cancer_beneficial_factors += 15
+        elif sugars > 20:
+            cancer_beneficial_factors -= 15
+        
+        # Low sodium (reduces treatment side effects)
+        sodium = nutriments.get('sodium', 0)
+        if sodium < 200:
+            cancer_beneficial_factors += 10
+        elif sodium > 600:
+            cancer_beneficial_factors -= 10
+        
+        # Categories that are beneficial for cancer patients
+        categories = nutrition_data.get('categories_tags', [])
+        beneficial_categories = [
+            'vegetables', 'fruits', 'whole-grains',
+            'legumes', 'nuts', 'seeds'
+        ]
+        
+        for category in categories:
+            if any(beneficial in category.lower() for beneficial in beneficial_categories):
+                cancer_beneficial_factors += 15
+                break
+        
+        scores['cancer_patient_score'] = max(min(scores['processing_score'] + cancer_beneficial_factors, 100.0), 0.0)
+        
+        # Overall score weighted for cancer patients
+        scores['overall_score'] = (
+            scores['processing_score'] * 0.3 +
+            scores['nutrient_density_score'] * 0.3 +
+            scores['additive_safety_score'] * 0.2 +
+            scores['cancer_patient_score'] * 0.2
+        )
+        
+    except Exception as e:
+        logger.error(f"Error calculating health scores: {str(e)}")
+    
+    return scores
+
+def generate_cancer_patient_recommendations(nutrition_data: Dict[str, Any], health_scores: Dict[str, float]) -> Dict[str, List[str]]:
+    """
+    Generate specific recommendations and warnings for cancer patients.
+    """
+    recommendations = []
+    warnings = []
+    alternatives = []
+    
+    try:
+        overall_score = health_scores.get('overall_score', 50)
+        processing_score = health_scores.get('processing_score', 50)
+        nutriments = parse_nutriments(nutrition_data.get('nutriments', {}))
+        
+        # Processing level recommendations
+        if processing_score < 40:
+            warnings.append("This is a highly processed food. Cancer patients benefit from minimally processed foods.")
+            recommendations.append("Look for whole food alternatives with fewer ingredients.")
+            alternatives.extend([
+                "Fresh fruits and vegetables",
+                "Whole grains like brown rice or quinoa",
+                "Lean proteins like fish or poultry"
+            ])
+        elif processing_score > 80:
+            recommendations.append("Excellent choice! This is a minimally processed food ideal for cancer patients.")
+        
+        # Sugar content analysis
+        sugars = nutriments.get('sugars', 0)
+        if sugars > 15:
+            warnings.append("High sugar content may impact immune function during treatment.")
+            recommendations.append("Consider lower-sugar alternatives to support stable blood sugar.")
+            alternatives.extend([
+                "Fresh fruit instead of fruit juice",
+                "Plain yogurt with fresh berries",
+                "Nuts or seeds for snacking"
+            ])
+        
+        # Sodium content analysis
+        sodium = nutriments.get('sodium', 0)
+        if sodium > 400:
+            warnings.append("High sodium content may contribute to treatment-related side effects.")
+            recommendations.append("Look for low-sodium versions to reduce treatment side effects.")
+            alternatives.extend([
+                "Fresh herbs and spices for flavoring",
+                "Low-sodium or no-salt-added versions",
+                "Home-prepared meals with controlled salt"
+            ])
+        
+        # Fiber content recommendations
+        fiber = nutriments.get('fiber', 0)
+        if fiber > 5:
+            recommendations.append("Excellent fiber content! This supports digestive health during treatment.")
+        elif fiber < 2:
+            recommendations.append("Consider pairing with high-fiber foods like vegetables or whole grains.")
+        
+        # Protein content for recovery
+        proteins = nutriments.get('proteins', 0)
+        if proteins > 10:
+            recommendations.append("Good protein content to support recovery and maintain strength.")
+        elif proteins < 5:
+            recommendations.append("Consider adding protein sources to support muscle maintenance.")
+            alternatives.extend([
+                "Greek yogurt",
+                "Lean meats or fish",
+                "Beans and legumes",
+                "Eggs or egg whites"
+            ])
+        
+        # Overall assessment
+        if overall_score >= 80:
+            recommendations.append("Excellent choice for cancer patients - nutrient-dense and minimally processed.")
+        elif overall_score >= 60:
+            recommendations.append("Good option with beneficial nutrients. Consider as part of a balanced diet.")
+        elif overall_score >= 40:
+            recommendations.append("Moderate choice - best consumed occasionally while prioritizing whole foods.")
+        else:
+            warnings.append("Not recommended for regular consumption during cancer treatment.")
+            recommendations.append("Focus on whole, minimally processed foods for optimal nutrition.")
+        
+        # Remove duplicates and limit lists
+        recommendations = list(dict.fromkeys(recommendations))[:5]
+        warnings = list(dict.fromkeys(warnings))[:3]
+        alternatives = list(dict.fromkeys(alternatives))[:5]
+        
+    except Exception as e:
+        logger.error(f"Error generating recommendations: {str(e)}")
+        recommendations = ["Unable to generate specific recommendations. Consult with your healthcare team about dietary choices."]
+    
+    return {
+        'recommendations': recommendations,
+        'warnings': warnings,
+        'alternatives': alternatives
+    }
+
+# AI Integration for Meal Suggestions (updated with proper authentication)
 @api_router.post("/ai/calming-activity")
 async def get_calming_activity(
     mood_level: int = Form(...), 
