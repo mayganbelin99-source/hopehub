@@ -22,6 +22,35 @@ body {
   font-family: 'Crimson Text', Georgia, serif;
 }
 
+/* Custom tab styling to prevent overlap */
+.tab-trigger {
+  min-width: fit-content;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive tab styling */
+@media (max-width: 768px) {
+  .tab-trigger {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .tab-trigger {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.2rem;
+  }
+}
+
+/* Ensure proper spacing between tab elements */
+.tab-trigger .lucide {
+  flex-shrink: 0;
+  min-width: 1rem;
+}
+
 /* Custom background gradients */
 .bg-gradient-to-br {
   background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
