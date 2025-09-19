@@ -258,73 +258,83 @@ async def get_patients_for_caregiver(current_user: UserProfile = Depends(get_cur
     
     return patients
 
-# Cancer Companion Routes (updated with authentication)
+# Cancer Companion Routes (updated with demo user support)
 @api_router.post("/medications", response_model=MedicationEntry)
 async def add_medication(
     medication: MedicationEntry,
-    current_user: UserProfile = Depends(get_current_user_dependency)
+    current_user: Optional[UserProfile] = Depends(get_optional_current_user)
 ):
-    medication.user_id = current_user.id
+    # Use demo user if no authentication
+    user_id = current_user.id if current_user else "demo-user-123"
+    medication.user_id = user_id
     medication_dict = prepare_for_mongo(medication.dict())
     await db.medications.insert_one(medication_dict)
     return medication
 
 @api_router.get("/medications", response_model=List[MedicationEntry])
-async def get_medications(current_user: UserProfile = Depends(get_current_user_dependency)):
-    medications = await db.medications.find({"user_id": current_user.id}).to_list(length=None)
+async def get_medications(current_user: Optional[UserProfile] = Depends(get_optional_current_user)):
+    user_id = current_user.id if current_user else "demo-user-123"
+    medications = await db.medications.find({"user_id": user_id}).to_list(length=None)
     return [MedicationEntry(**parse_from_mongo(med)) for med in medications]
 
 @api_router.post("/symptoms", response_model=SymptomEntry)
 async def add_symptom(
     symptom: SymptomEntry,
-    current_user: UserProfile = Depends(get_current_user_dependency)
+    current_user: Optional[UserProfile] = Depends(get_optional_current_user)
 ):
-    symptom.user_id = current_user.id
+    user_id = current_user.id if current_user else "demo-user-123"
+    symptom.user_id = user_id
     symptom_dict = prepare_for_mongo(symptom.dict())
     await db.symptoms.insert_one(symptom_dict)
     return symptom
 
 @api_router.get("/symptoms", response_model=List[SymptomEntry])
-async def get_symptoms(current_user: UserProfile = Depends(get_current_user_dependency)):
-    symptoms = await db.symptoms.find({"user_id": current_user.id}).sort("timestamp", -1).to_list(length=None)
+async def get_symptoms(current_user: Optional[UserProfile] = Depends(get_optional_current_user)):
+    user_id = current_user.id if current_user else "demo-user-123"
+    symptoms = await db.symptoms.find({"user_id": user_id}).sort("timestamp", -1).to_list(length=None)
     return [SymptomEntry(**parse_from_mongo(sym)) for sym in symptoms]
 
 @api_router.post("/appointments", response_model=AppointmentEntry)
 async def add_appointment(
     appointment: AppointmentEntry,
-    current_user: UserProfile = Depends(get_current_user_dependency)
+    current_user: Optional[UserProfile] = Depends(get_optional_current_user)
 ):
-    appointment.user_id = current_user.id
+    user_id = current_user.id if current_user else "demo-user-123"
+    appointment.user_id = user_id
     appointment_dict = prepare_for_mongo(appointment.dict())
     await db.appointments.insert_one(appointment_dict)
     return appointment
 
 @api_router.get("/appointments", response_model=List[AppointmentEntry])
-async def get_appointments(current_user: UserProfile = Depends(get_current_user_dependency)):
-    appointments = await db.appointments.find({"user_id": current_user.id}).sort("appointment_date", 1).to_list(length=None)
+async def get_appointments(current_user: Optional[UserProfile] = Depends(get_optional_current_user)):
+    user_id = current_user.id if current_user else "demo-user-123"
+    appointments = await db.appointments.find({"user_id": user_id}).sort("appointment_date", 1).to_list(length=None)
     return [AppointmentEntry(**parse_from_mongo(apt)) for apt in appointments]
 
-# Mental Health Buddy Routes (updated with authentication)
+# Mental Health Buddy Routes (updated with demo user support)
 @api_router.post("/mood", response_model=MoodEntry)
 async def add_mood_entry(
     mood: MoodEntry,
-    current_user: UserProfile = Depends(get_current_user_dependency)
+    current_user: Optional[UserProfile] = Depends(get_optional_current_user)
 ):
-    mood.user_id = current_user.id
+    user_id = current_user.id if current_user else "demo-user-123"
+    mood.user_id = user_id
     mood_dict = prepare_for_mongo(mood.dict())
     await db.mood_entries.insert_one(mood_dict)
     return mood
 
 @api_router.get("/mood", response_model=List[MoodEntry])
-async def get_mood_entries(current_user: UserProfile = Depends(get_current_user_dependency)):
-    mood_entries = await db.mood_entries.find({"user_id": current_user.id}).sort("timestamp", -1).to_list(length=None)
+async def get_mood_entries(current_user: Optional[UserProfile] = Depends(get_optional_current_user)):
+    user_id = current_user.id if current_user else "demo-user-123"
+    mood_entries = await db.mood_entries.find({"user_id": user_id}).sort("timestamp", -1).to_list(length=None)
     return [MoodEntry(**parse_from_mongo(mood)) for mood in mood_entries]
 
 @api_router.get("/mood/trends")
-async def get_mood_trends(current_user: UserProfile = Depends(get_current_user_dependency), days: int = 30):
+async def get_mood_trends(current_user: Optional[UserProfile] = Depends(get_optional_current_user), days: int = 30):
+    user_id = current_user.id if current_user else "demo-user-123"
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
     mood_entries = await db.mood_entries.find({
-        "user_id": current_user.id,
+        "user_id": user_id,
         "timestamp": {"$gte": start_date}
     }).sort("timestamp", 1).to_list(length=None)
     
@@ -334,14 +344,16 @@ async def get_mood_trends(current_user: UserProfile = Depends(get_current_user_d
         "trend": "improving" if len(mood_entries) > 1 and mood_entries[-1]["mood_rating"] > mood_entries[0]["mood_rating"] else "stable"
     }
 
-# AI Integration routes (updated with authentication)
+# AI Integration routes (updated with demo user support)
 @api_router.post("/ai/calming-activity")
 async def get_calming_activity(
     mood_level: int = Form(...), 
     stress_level: int = Form(...),
     energy_level: int = Form(...),
-    current_user: UserProfile = Depends(get_current_user_dependency)
+    current_user: Optional[UserProfile] = Depends(get_optional_current_user)
 ):
+    user_name = current_user.name if current_user else "Demo"
+    
     try:
         import subprocess
         import sys
@@ -358,7 +370,7 @@ async def get_calming_activity(
         chat = LlmChat(
             api_key=api_key,
             session_id=f"calming_{uuid.uuid4()}",
-            system_message=f"You are a gentle, empathetic wellness assistant for {current_user.name}, a cancer patient. Provide calming, supportive activities and gentle encouragement. Keep responses warm, hopeful, and practical."
+            system_message=f"You are a gentle, empathetic wellness assistant for {user_name}, a cancer patient. Provide calming, supportive activities and gentle encouragement. Keep responses warm, hopeful, and practical."
         ).with_model("openai", "gpt-5")
         
         user_message = UserMessage(
@@ -393,8 +405,10 @@ async def get_meal_suggestions(
     energy_level: int = Form(...),
     nausea: bool = Form(False),
     appetite: str = Form("normal"),
-    current_user: UserProfile = Depends(get_current_user_dependency)
+    current_user: Optional[UserProfile] = Depends(get_optional_current_user)
 ):
+    user_name = current_user.name if current_user else "Demo"
+    
     try:
         import subprocess
         import sys
@@ -411,7 +425,7 @@ async def get_meal_suggestions(
         chat = LlmChat(
             api_key=api_key,
             session_id=f"nutrition_{uuid.uuid4()}",
-            system_message=f"You are a compassionate nutrition assistant for {current_user.name}, a cancer patient. Provide gentle, nourishing meal suggestions that are easy to prepare and digest. Focus on cancer-fighting foods and consider treatment side effects like nausea and fatigue."
+            system_message=f"You are a compassionate nutrition assistant for {user_name}, a cancer patient. Provide gentle, nourishing meal suggestions that are easy to prepare and digest. Focus on cancer-fighting foods and consider treatment side effects like nausea and fatigue."
         ).with_model("openai", "gpt-5")
         
         conditions_text = f"energy level is {energy_level}/10"
@@ -447,20 +461,22 @@ async def get_meal_suggestions(
             "message": "Using general recommendations"
         }
 
-# Nutrition Helper Routes (updated with authentication)
+# Nutrition Helper Routes (updated with demo user support)
 @api_router.post("/nutrition", response_model=NutritionEntry)
 async def add_nutrition_entry(
     nutrition: NutritionEntry,
-    current_user: UserProfile = Depends(get_current_user_dependency)
+    current_user: Optional[UserProfile] = Depends(get_optional_current_user)
 ):
-    nutrition.user_id = current_user.id
+    user_id = current_user.id if current_user else "demo-user-123"
+    nutrition.user_id = user_id
     nutrition_dict = prepare_for_mongo(nutrition.dict())
     await db.nutrition_entries.insert_one(nutrition_dict)
     return nutrition
 
 @api_router.get("/nutrition", response_model=List[NutritionEntry])
-async def get_nutrition_entries(current_user: UserProfile = Depends(get_current_user_dependency)):
-    entries = await db.nutrition_entries.find({"user_id": current_user.id}).sort("timestamp", -1).to_list(length=None)
+async def get_nutrition_entries(current_user: Optional[UserProfile] = Depends(get_optional_current_user)):
+    user_id = current_user.id if current_user else "demo-user-123"
+    entries = await db.nutrition_entries.find({"user_id": user_id}).sort("timestamp", -1).to_list(length=None)
     return [NutritionEntry(**parse_from_mongo(entry)) for entry in entries]
 
 # Local Resource Finder Routes (no auth required)
