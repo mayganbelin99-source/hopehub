@@ -379,6 +379,13 @@ def main():
     success = tester.test_ai_calming_activity()
     test_results.append(("AI Calming Activity", success))
     
+    # High Priority Barcode Scanning
+    success = tester.test_barcode_scanning()
+    test_results.append(("Barcode Scanning", success))
+    
+    success = tester.test_barcode_edge_cases()
+    test_results.append(("Barcode Edge Cases", success))
+    
     # Print final results
     print("\n" + "=" * 50)
     print("📊 FINAL TEST RESULTS")
