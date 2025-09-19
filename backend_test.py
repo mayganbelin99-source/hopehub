@@ -335,9 +335,9 @@ class HopeHubAPITester:
         if not success:
             return False
         
-        # Test invalid barcode
+        # Test invalid barcode (using a clearly invalid format)
         invalid_barcode_data = {
-            "barcode": "123456789"
+            "barcode": "0000000000000"
         }
         
         print("   ⏳ Testing invalid barcode...")
