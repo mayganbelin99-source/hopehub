@@ -1256,7 +1256,7 @@ const NutritionHelper = () => {
 
   const fetchNutritionEntries = async () => {
     try {
-      const response = await axios.get(`${API}/nutrition`, { withCredentials: true });
+      const response = await axios.get(`${API}/nutrition`);
       setNutritionEntries(response.data.slice(0, 10));
     } catch (error) {
       console.error('Error fetching nutrition entries:', error);
@@ -1272,7 +1272,7 @@ const NutritionHelper = () => {
       formData.append('nausea', suggestionForm.nausea);
       formData.append('appetite', suggestionForm.appetite);
 
-      const response = await axios.post(`${API}/ai/meal-suggestions`, formData, { withCredentials: true });
+      const response = await axios.post(`${API}/ai/meal-suggestions`, formData);
       setMealSuggestions(response.data.meal_suggestions);
     } catch (error) {
       console.error('Error getting meal suggestions:', error);
@@ -1286,9 +1286,10 @@ const NutritionHelper = () => {
     try {
       const entryData = {
         ...mealForm,
+        user_id: 'demo-user-123',
         food_items: mealForm.food_items.split(',').map(item => item.trim())
       };
-      await axios.post(`${API}/nutrition`, entryData, { withCredentials: true });
+      await axios.post(`${API}/nutrition`, entryData);
       setMealForm({
         meal_type: '',
         food_items: '',
