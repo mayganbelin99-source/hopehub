@@ -1533,7 +1533,7 @@ const MentalHealthBuddy = () => {
 
   const fetchMoodEntries = async () => {
     try {
-      const response = await axios.get(`${API}/mood`, { withCredentials: true });
+      const response = await axios.get(`${API}/mood`);
       setMoodEntries(response.data.slice(0, 7));
     } catch (error) {
       console.error('Error fetching mood entries:', error);
@@ -1544,11 +1544,12 @@ const MentalHealthBuddy = () => {
     try {
       const entryData = {
         ...moodForm,
+        user_id: 'demo-user-123',
         mood_rating: moodForm.mood_rating[0],
         stress_level: moodForm.stress_level[0],
         energy_level: moodForm.energy_level[0]
       };
-      await axios.post(`${API}/mood`, entryData, { withCredentials: true });
+      await axios.post(`${API}/mood`, entryData);
       setMoodForm({
         mood_rating: [5],
         emotions: [],
@@ -1572,7 +1573,7 @@ const MentalHealthBuddy = () => {
       formData.append('stress_level', moodForm.stress_level[0]);
       formData.append('energy_level', moodForm.energy_level[0]);
 
-      const response = await axios.post(`${API}/ai/calming-activity`, formData, { withCredentials: true });
+      const response = await axios.post(`${API}/ai/calming-activity`, formData);
       setCalmingActivity(response.data.calming_activities);
     } catch (error) {
       console.error('Error getting calming activity:', error);
