@@ -407,6 +407,11 @@ def main():
     
     tester = HopeHubAPITester()
     
+    # Setup test user authentication
+    if not tester.setup_test_user():
+        print("❌ Failed to setup authentication. Exiting.")
+        return 1
+    
     # Run all tests
     test_results = []
     
