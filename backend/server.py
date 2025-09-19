@@ -106,16 +106,11 @@ def prepare_for_mongo(data):
     return data
 
 def parse_from_mongo(item):
-    if isinstance(item.get('appointment_date'), str):
-        try:
-            item['appointment_date'] = datetime.fromisoformat(item['appointment_date']).date()
-        except:
-            pass
-    if isinstance(item.get('appointment_time'), str):
-        try:
-            item['appointment_time'] = datetime.strptime(item['appointment_time'], '%H:%M:%S').time()
-        except:
-            pass
+    # Keep appointment_date and appointment_time as strings for Pydantic models
+    if isinstance(item.get('appointment_date'), date):
+        item['appointment_date'] = item['appointment_date'].isoformat()
+    if isinstance(item.get('appointment_time'), time):
+        item['appointment_time'] = item['appointment_time'].strftime('%H:%M')
     return item
 
 # Cancer Companion Routes
