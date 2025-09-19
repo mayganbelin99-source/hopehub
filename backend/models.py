@@ -138,7 +138,7 @@ class CaregiverInviteRequest(BaseModel):
     caregiver_name: str = Field(..., description="Name of the caregiver")
 
 class BarcodeRequest(BaseModel):
-    barcode: str
+    barcode: str = Field(..., min_length=1, description="Barcode must not be empty")
     patient_preferences: Optional[Dict[str, Any]] = None
 
 class NutritionAnalysis(BaseModel):
