@@ -78,10 +78,29 @@ export const useAuth = () => {
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [patients, setPatients] = useState([]); // For caregivers
+  const [patients, setPatients] = useState([]);
 
   useEffect(() => {
-    checkAuthStatus();
+    // Temporary: Create a demo user for testing
+    const demoUser = {
+      id: 'demo-user-123',
+      email: 'demo@hopehub.com',
+      name: 'Demo User',
+      picture: null,
+      role: 'patient',
+      personal_mantra: '',
+      fighting_for: '',
+      diagnosis_date: '',
+      favorite_color: '#ec4899',
+      theme_preference: 'soft',
+      treatment_milestones: []
+    };
+    
+    setUser(demoUser);
+    setLoading(false);
+    
+    // TODO: Uncomment this when OAuth is working
+    // checkAuthStatus();
   }, []);
 
   const checkAuthStatus = async () => {
@@ -89,7 +108,6 @@ const AuthProvider = ({ children }) => {
       const response = await axios.get(`${API}/auth/me`, { withCredentials: true });
       setUser(response.data);
       
-      // If user is a caregiver, fetch patients they care for
       if (response.data.role === 'caregiver') {
         fetchPatients();
       }
