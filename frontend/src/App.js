@@ -205,7 +205,7 @@ const LoginPage = () => {
   };
 
   const handleGoogleLogin = () => {
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}/login`;
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
   };
 
