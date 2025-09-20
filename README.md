@@ -51,5 +51,5 @@ HopeHub is a comprehensive cancer companion application that supports patients a
 
 Managing cancer is overwhelming. HopeHub simplifies care by putting health tracking, emotional support, and personalized tools into one easy app. It empowers patients and helps caregivers provide better support.
 
-✨ Because no one should face cancer alone.
+✨ Because no one should face cancer alone. 
 
